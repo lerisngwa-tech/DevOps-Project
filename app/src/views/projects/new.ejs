@@ -1,0 +1,20 @@
+<%- include("../partials/header", { title: "New project", error }) %>
+
+<div class="page-head">
+  <h1>New project</h1>
+</div>
+
+<form class="form" method="POST" action="/projects">
+  <label for="name">Name</label>
+  <input type="text" id="name" name="name" required autofocus />
+
+  <label for="description">Description</label>
+  <textarea id="description" name="description" rows="4"></textarea>
+
+  <div class="form-actions">
+    <button type="submit">Create project</button>
+    <a class="button-secondary" href="/projects">Cancel</a>
+  </div>
+</form>
+
+<%- include("../partials/footer") %>

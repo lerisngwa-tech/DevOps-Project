@@ -1,0 +1,45 @@
+<%- include("../partials/header", { title: task.title, error }) %>
+
+<a class="back-link" href="/projects/<%= task.project_id %>">&larr; Back to project</a>
+
+<div class="page-head">
+  <div>
+    <h1><%= task.title %></h1>
+    <% if (task.description) { %><p><%= task.description %></p><% } %>
+  </div>
+</div>
+
+<form class="form form-inline" method="POST" action="/tasks/<%= task.id %>/status">
+  <label for="status">Status</label>
+  <select id="status" name="status">
+    <% ["todo", "in_progress", "done"].forEach((s) => { %>
+      <option value="<%= s %>" <%= task.status === s ? "selected" : "" %>><%= s %></option>
+    <% }) %>
+  </select>
+  <button type="submit">Update</button>
+</form>
+
+<h2>Attachments</h2>
+
+<form class="form form-inline" method="POST" action="/tasks/<%= task.id %>/attachments" enctype="multipart/form-data">
+  <input type="file" name="file" required />
+  <button type="submit">Upload</button>
+</form>
+
+<% if (attachments.length === 0) { %>
+  <p class="empty">No attachments yet.</p>
+<% } else { %>
+  <ul class="card-list">
+    <% attachments.forEach((a) => { %>
+      <li class="card attachment-row">
+        <a href="<%= a.download_url %>"><%= a.file_name %></a>
+        <span class="meta"><%= (a.size_bytes / 1024).toFixed(1) %> KB</span>
+        <form method="POST" action="/tasks/<%= task.id %>/attachments/<%= a.id %>/delete">
+          <button type="submit" class="button-danger">Delete</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include("../partials/footer") %>

@@ -1,0 +1,24 @@
+<%- include("../partials/header", { title: "Projects", error }) %>
+
+<div class="page-head">
+  <h1>Projects</h1>
+  <a class="button" href="/projects/new">+ New project</a>
+</div>
+
+<% if (projects.length === 0) { %>
+  <p class="empty">No projects yet. <a href="/projects/new">Create the first one</a>.</p>
+<% } else { %>
+  <ul class="card-list">
+    <% projects.forEach((project) => { %>
+      <li class="card">
+        <a href="/projects/<%= project.id %>"><strong><%= project.name %></strong></a>
+        <% if (project.description) { %>
+          <p><%= project.description %></p>
+        <% } %>
+        <span class="meta">Created <%= new Date(project.created_at).toLocaleString() %></span>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include("../partials/footer") %>

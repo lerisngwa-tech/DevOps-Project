@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -8,7 +10,10 @@ import { healthRouter } from "./routes/health.js";
 import { projectsRouter } from "./routes/projects.js";
 import { tasksRouter } from "./routes/tasks.js";
 import { attachmentsRouter } from "./routes/attachments.js";
+import { uiRouter } from "./routes/ui.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   await initPool();
@@ -18,11 +23,17 @@ async function main() {
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.static(path.join(__dirname, "public")));
+
+  app.set("view engine", "ejs");
+  app.set("views", path.join(__dirname, "views"));
 
   app.use(healthRouter);
   app.use("/api/projects", projectsRouter);
   app.use("/api", tasksRouter);
   app.use("/api", attachmentsRouter);
+  app.use(uiRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

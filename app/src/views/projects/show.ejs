@@ -1,0 +1,31 @@
+<%- include("../partials/header", { title: project.name, error }) %>
+
+<div class="page-head">
+  <div>
+    <a class="back-link" href="/projects">&larr; All projects</a>
+    <h1><%= project.name %></h1>
+    <% if (project.description) { %><p><%= project.description %></p><% } %>
+  </div>
+</div>
+
+<h2>Tasks</h2>
+
+<form class="form form-inline" method="POST" action="/projects/<%= project.id %>/tasks">
+  <input type="text" name="title" placeholder="New task title" required />
+  <button type="submit">Add task</button>
+</form>
+
+<% if (tasks.length === 0) { %>
+  <p class="empty">No tasks yet.</p>
+<% } else { %>
+  <ul class="card-list">
+    <% tasks.forEach((task) => { %>
+      <li class="card">
+        <a href="/tasks/<%= task.id %>"><strong><%= task.title %></strong></a>
+        <span class="badge badge-<%= task.status %>"><%= task.status %></span>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include("../partials/footer") %>
