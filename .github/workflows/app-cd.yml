@@ -92,11 +92,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - uses: azure/setup-kubectl@v4
+      - name: Install kubectl
+        run: |
+          KUBECTL_VERSION=$(curl -fsSL https://dl.k8s.io/release/stable-1.31.txt)
+          curl -fsSL -o kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
 
-      - uses: azure/setup-helm@v4
-        with:
-          version: "v3.15.3"
+      - name: Install Helm
+        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash -s -- --version v3.15.3
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME }}" --region "${{ vars.AWS_REGION }}"
