@@ -113,6 +113,10 @@ module "alb_controller" {
 module "monitoring" {
   source = "../../modules/monitoring"
 
+  cluster_name      = local.cluster_name
+  aws_region        = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+
   # Needs the AWS Load Balancer Controller already running to provision the
   # NLB behind Grafana's Service annotations.
   depends_on = [module.alb_controller]
