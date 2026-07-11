@@ -63,6 +63,11 @@ output "db_secret_irsa_role_arn" {
   value       = module.rds.db_secret_irsa_role_arn
 }
 
+output "k8s_namespace" {
+  description = "Kubernetes namespace the application deploys into"
+  value       = var.app_k8s_namespace
+}
+
 output "configure_kubectl" {
   description = "Command to update local kubeconfig for this cluster"
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.aws_region}"

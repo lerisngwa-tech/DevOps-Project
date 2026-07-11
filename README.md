@@ -124,10 +124,11 @@ Two workflows automate the app build/deploy (Terraform stays a manual CLI workfl
    | `APP_BUCKET_IRSA_ROLE_ARN` | `terraform output -raw app_bucket_irsa_role_arn` |
    | `DB_SECRET_ARN` | `terraform output -raw db_secret_arn` |
    | `DB_SECRET_IRSA_ROLE_ARN` | `terraform output -raw db_secret_irsa_role_arn` |
+   | `K8S_NAMESPACE` | `terraform output -raw k8s_namespace` (e.g. `myapp-dev`) |
 
 3. **Create a CI IAM user** (or reuse one) and attach the least-privilege policy in [`.github/ci-iam-policy.json`](.github/ci-iam-policy.json) (ECR push on the `myapp-*-app` repos + `eks:DescribeCluster` on the `myapp-*` clusters). Add its access key as **repo-level secrets**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
 
-4. **Grant that CI user Kubernetes access on each cluster** (the clusters use `authentication_mode = API_AND_CONFIG_MAP`, so an IAM identity also needs an explicit access entry to get past Kubernetes RBAC), once per environment:
+4. **Grant that CI user Kubernetes access on each cluster** (the clusters use `authentication_mode = API_AND_CONFIG_MAP`, so an IAM identity also needs an explicit access entry to get past Kubernetes RBAC), once per environment — replace `<namespace>` with that environment's `k8s_namespace` output (e.g. `myapp-dev`):
 
    ```
    aws eks create-access-entry \
@@ -139,7 +140,7 @@ Two workflows automate the app build/deploy (Terraform stays a manual CLI workfl
      --cluster-name <cluster_name> \
      --principal-arn <ci-iam-user-arn> \
      --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy \
-     --access-scope type=namespace,namespaces=default \
+     --access-scope type=namespace,namespaces=<namespace> \
      --region us-east-1
    ```
 

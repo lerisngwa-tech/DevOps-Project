@@ -20,7 +20,7 @@ log_retention_days       = 30
 ecr_untagged_expiry_days = 14
 
 app_bucket_suffix                = "changeme-account-id"
-app_k8s_namespace                = "default"
+app_k8s_namespace                = "myapp-stg"
 app_s3_service_account_name      = "app-s3-access"
 app_secrets_service_account_name = "app-secrets-access"
 

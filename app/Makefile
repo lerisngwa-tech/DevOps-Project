@@ -22,6 +22,7 @@ deploy: push
 	$(eval S3_ROLE := $(call tf-output,app_bucket_irsa_role_arn))
 	$(eval DB_SECRET_ARN := $(call tf-output,db_secret_arn))
 	$(eval DB_ROLE := $(call tf-output,db_secret_irsa_role_arn))
+	$(eval NAMESPACE := $(call tf-output,k8s_namespace))
 	helm upgrade --install task-tracker ../helm/task-tracker \
 	  -f ../helm/task-tracker/values-$(ENV).yaml \
 	  --set image.repository=$(REPO) \
@@ -30,6 +31,6 @@ deploy: push
 	  --set env.s3BucketName=$(S3_BUCKET) \
 	  --set env.dbSecretArn=$(DB_SECRET_ARN) \
 	  --set env.dbSecretRoleArn=$(DB_ROLE) \
-	  --namespace default
+	  --namespace $(NAMESPACE) --create-namespace
 
 release: deploy

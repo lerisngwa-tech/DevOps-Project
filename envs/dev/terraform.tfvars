@@ -8,7 +8,7 @@ private_subnet_cidrs = ["10.0.0.0/20", "10.0.16.0/20", "10.0.32.0/20"]
 public_subnet_cidrs  = ["10.0.48.0/24", "10.0.49.0/24", "10.0.50.0/24"]
 single_nat_gateway   = true # cheaper for dev; set false in prod for one NAT per AZ
 
-cluster_version = "1.30"
+cluster_version = "1.31"
 
 node_instance_types = ["t3.medium"]
 node_capacity_type  = "ON_DEMAND"
@@ -20,7 +20,7 @@ log_retention_days       = 14
 ecr_untagged_expiry_days = 14
 
 app_bucket_suffix                = "246312965731"
-app_k8s_namespace                = "default"
+app_k8s_namespace                = "myapp-dev"
 app_s3_service_account_name      = "app-s3-access"
 app_secrets_service_account_name = "app-secrets-access"
 
