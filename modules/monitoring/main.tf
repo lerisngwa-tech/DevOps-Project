@@ -92,6 +92,7 @@ resource "helm_release" "kube_prometheus_stack" {
           {
             name   = "CloudWatch"
             type   = "cloudwatch"
+            uid    = "cloudwatch"
             access = "proxy"
             jsonData = {
               authType      = "default"
@@ -139,6 +140,22 @@ resource "kubernetes_config_map_v1" "task_tracker_dashboard" {
 
   data = {
     "task-tracker.json" = file("${path.module}/dashboards/task-tracker.json")
+  }
+
+  depends_on = [helm_release.kube_prometheus_stack]
+}
+
+resource "kubernetes_config_map_v1" "task_tracker_e2e_dashboard" {
+  metadata {
+    name      = "task-tracker-e2e-dashboard"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+
+  data = {
+    "task-tracker-e2e.json" = file("${path.module}/dashboards/task-tracker-e2e.json")
   }
 
   depends_on = [helm_release.kube_prometheus_stack]

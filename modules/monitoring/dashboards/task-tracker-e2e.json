@@ -1,0 +1,171 @@
+{
+  "title": "Task Tracker - End to End",
+  "uid": "task-tracker-e2e",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "tags": ["task-tracker", "end-to-end"],
+  "templating": { "list": [] },
+  "panels": [
+    { "id": 100, "title": "Application", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 1,
+      "title": "Request rate by route",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"task-tracker\"}[5m])) by (route)",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "p95 request latency",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"task-tracker\"}[5m])) by (le, route))",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Error rate (5xx)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"task-tracker\", status_code=~\"5..\"}[5m]))",
+          "legendFormat": "5xx errors/sec",
+          "refId": "A"
+        }
+      ]
+    },
+
+    { "id": 101, "title": "Pod & Node Infra", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 } },
+    {
+      "id": 4,
+      "title": "Task Tracker pod CPU usage",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"myapp-dev\", pod=~\"task-tracker.*\"}[5m])) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Task Tracker pod memory usage",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"myapp-dev\", pod=~\"task-tracker.*\"}) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    { "id": 102, "title": "Database (RDS)", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 } },
+    {
+      "id": 6,
+      "title": "RDS CPU utilization",
+      "type": "timeseries",
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 19 },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "queryMode": "Metrics",
+          "namespace": "AWS/RDS",
+          "metricName": "CPUUtilization",
+          "dimensions": { "DBInstanceIdentifier": "myapp-dev-db" },
+          "statistic": "Average",
+          "region": "us-east-1"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "RDS database connections",
+      "type": "timeseries",
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 19 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryMode": "Metrics",
+          "namespace": "AWS/RDS",
+          "metricName": "DatabaseConnections",
+          "dimensions": { "DBInstanceIdentifier": "myapp-dev-db" },
+          "statistic": "Average",
+          "region": "us-east-1"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "RDS free storage space",
+      "type": "timeseries",
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 19 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "queryMode": "Metrics",
+          "namespace": "AWS/RDS",
+          "metricName": "FreeStorageSpace",
+          "dimensions": { "DBInstanceIdentifier": "myapp-dev-db" },
+          "statistic": "Average",
+          "region": "us-east-1"
+        }
+      ]
+    },
+
+    { "id": 103, "title": "Logs", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 } },
+    {
+      "id": 9,
+      "title": "Task Tracker container logs",
+      "type": "logs",
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryMode": "Logs",
+          "region": "us-east-1",
+          "logGroups": [
+            {
+              "arn": "arn:aws:logs:us-east-1:246312965731:log-group:/aws/containerinsights/myapp-dev/application:*",
+              "name": "/aws/containerinsights/myapp-dev/application"
+            }
+          ],
+          "queryString": "fields @timestamp, @message | filter @logStream like /task-tracker/ | sort @timestamp desc | limit 100"
+        }
+      ]
+    }
+  ]
+}
