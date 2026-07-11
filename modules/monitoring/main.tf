@@ -23,6 +23,23 @@ module "grafana_cloudwatch_irsa" {
   }
 }
 
+# Neither CloudWatch managed policy above includes ec2:DescribeRegions, which
+# the CloudWatch datasource's region-picker UI calls — cosmetic only, doesn't
+# affect actual log/metric queries, but this clears the 403 in the UI.
+data "aws_iam_policy_document" "grafana_describe_regions" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ec2:DescribeRegions"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "grafana_describe_regions" {
+  name   = "${var.cluster_name}-grafana-describe-regions"
+  role   = module.grafana_cloudwatch_irsa.iam_role_name
+  policy = data.aws_iam_policy_document.grafana_describe_regions.json
+}
+
 # The aws-ebs-csi-driver addon (installed in modules/eks) provisions volumes,
 # but the cluster ships with no default StorageClass — PVCs without an
 # explicit storageClassName (like this chart's) would otherwise stay Pending
