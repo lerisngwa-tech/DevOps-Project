@@ -144,4 +144,6 @@ Two workflows automate the app build/deploy (Terraform stays a manual CLI workfl
      --region us-east-1
    ```
 
+5. **Pre-create the namespace** for each environment before its first deploy: `kubectl create namespace <namespace>` (e.g. `myapp-dev`), using your own (broader) credentials. `Namespace` is a cluster-scoped object, so the CI user's namespace-scoped `AmazonEKSEditPolicy` deliberately cannot create or even read it — only manage resources *inside* it. This is a one-time step per environment.
+
 Once these are in place, merging to `main` auto-deploys to `dev`; use **Actions → App CD → Run workflow** and pick `stg` or `prod` to promote the same pipeline to those environments.

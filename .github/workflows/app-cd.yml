@@ -112,7 +112,7 @@ jobs:
             --set env.s3BucketName="${{ vars.S3_BUCKET_NAME }}" \
             --set env.dbSecretArn="${{ vars.DB_SECRET_ARN }}" \
             --set env.dbSecretRoleArn="${{ vars.DB_SECRET_IRSA_ROLE_ARN }}" \
-            --namespace "${{ vars.K8S_NAMESPACE }}" --create-namespace \
+            --namespace "${{ vars.K8S_NAMESPACE }}" \
             --wait --timeout 5m
 
       - name: Verify deployment
