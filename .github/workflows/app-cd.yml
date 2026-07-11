@@ -1,4 +1,4 @@
-name: App CD
+name: Build and Deploy
 
 on:
   push:
@@ -10,19 +10,54 @@ on:
     inputs:
       environment:
         description: "Environment to deploy to"
+        required: true
+        default: "dev"
         type: choice
-        options: [dev, stg, prod]
-        default: dev
+        options:
+          - dev
+          - stg
+          - prod
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || 'dev' }}
     defaults:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests (if any are defined)
+        run: npm test --if-present
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [test]
+    environment: ${{ inputs.environment || 'dev' }}
+    defaults:
+      run:
+        working-directory: app
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "image_tag=${{ inputs.environment || 'dev' }}-${TIMESTAMP}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -32,16 +67,30 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to ECR
-        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image
-        id: build-image
+      - name: Build and push image
         run: |
-          IMAGE_TAG="${{ github.sha }}"
-          docker build -t "${{ vars.ECR_REPOSITORY_URL }}:$IMAGE_TAG" .
-          docker push "${{ vars.ECR_REPOSITORY_URL }}:$IMAGE_TAG"
-          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          docker build -t "${{ vars.ECR_REPOSITORY_URL }}:${{ steps.tag.outputs.image_tag }}" .
+          docker push "${{ vars.ECR_REPOSITORY_URL }}:${{ steps.tag.outputs.image_tag }}"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment: ${{ inputs.environment || 'dev' }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - uses: azure/setup-kubectl@v4
 
@@ -52,16 +101,21 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME }}" --region "${{ vars.AWS_REGION }}"
 
-      - name: Helm upgrade --install
+      - name: Install/Upgrade Helm release
         working-directory: app/chart/task-tracker
         run: |
           helm upgrade --install task-tracker . \
             -f "values-${{ inputs.environment || 'dev' }}.yaml" \
             --set image.repository="${{ vars.ECR_REPOSITORY_URL }}" \
-            --set image.tag="${{ steps.build-image.outputs.tag }}" \
+            --set image.tag="${{ needs.build-and-push.outputs.image_tag }}" \
             --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${{ vars.APP_BUCKET_IRSA_ROLE_ARN }}" \
             --set env.s3BucketName="${{ vars.S3_BUCKET_NAME }}" \
             --set env.dbSecretArn="${{ vars.DB_SECRET_ARN }}" \
             --set env.dbSecretRoleArn="${{ vars.DB_SECRET_IRSA_ROLE_ARN }}" \
             --namespace default \
             --wait --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n default -l app.kubernetes.io/name=task-tracker
+          kubectl get ingress -n default
