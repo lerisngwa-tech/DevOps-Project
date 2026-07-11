@@ -1,0 +1,7 @@
+Task & Project Tracker deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Check rollout status:
+  kubectl rollout status deployment/{{ include "task-tracker.fullname" . }} -n {{ .Release.Namespace }}
+
+Get the ALB hostname (may take a minute to provision):
+  kubectl get ingress {{ include "task-tracker.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'

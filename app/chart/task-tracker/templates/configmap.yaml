@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "task-tracker.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "task-tracker.labels" . | nindent 4 }}
+data:
+  AWS_REGION: {{ .Values.env.awsRegion | quote }}
+  PORT: {{ .Values.env.port | quote }}
+  S3_BUCKET_NAME: {{ .Values.env.s3BucketName | quote }}
+  DB_SECRET_ARN: {{ .Values.env.dbSecretArn | quote }}
+  DB_SECRET_ROLE_ARN: {{ .Values.env.dbSecretRoleArn | quote }}

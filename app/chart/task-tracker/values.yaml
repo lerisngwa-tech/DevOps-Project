@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: "" # filled via --set from `terraform output -raw ecr_repository_url`
+  tag: "latest" # filled via --set with the built image tag (git sha)
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: app-s3-access # must match app_s3_service_account_name in envs/<env>/terraform.tfvars
+  annotations:
+    eks.amazonaws.com/role-arn: "" # filled via --set from `terraform output -raw app_bucket_irsa_role_arn`
+
+env:
+  awsRegion: us-east-1
+  s3BucketName: "" # --set from app_bucket_name
+  dbSecretArn: "" # --set from db_secret_arn
+  dbSecretRoleArn: "" # --set from db_secret_irsa_role_arn
+  port: 3000
+
+service:
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+  host: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

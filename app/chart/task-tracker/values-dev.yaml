@@ -1,0 +1,12 @@
+replicaCount: 1
+
+ingress:
+  host: task-tracker-dev.example.com
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 250m
+    memory: 192Mi
