@@ -1,0 +1,67 @@
+name: App CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/app-cd.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        type: choice
+        options: [dev, stg, prod]
+        default: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        id: build-image
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          docker build -t "${{ vars.ECR_REPOSITORY_URL }}:$IMAGE_TAG" .
+          docker push "${{ vars.ECR_REPOSITORY_URL }}:$IMAGE_TAG"
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-kubectl@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.15.3"
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME }}" --region "${{ vars.AWS_REGION }}"
+
+      - name: Helm upgrade --install
+        working-directory: app/chart/task-tracker
+        run: |
+          helm upgrade --install task-tracker . \
+            -f "values-${{ inputs.environment || 'dev' }}.yaml" \
+            --set image.repository="${{ vars.ECR_REPOSITORY_URL }}" \
+            --set image.tag="${{ steps.build-image.outputs.tag }}" \
+            --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${{ vars.APP_BUCKET_IRSA_ROLE_ARN }}" \
+            --set env.s3BucketName="${{ vars.S3_BUCKET_NAME }}" \
+            --set env.dbSecretArn="${{ vars.DB_SECRET_ARN }}" \
+            --set env.dbSecretRoleArn="${{ vars.DB_SECRET_IRSA_ROLE_ARN }}" \
+            --namespace default \
+            --wait --timeout 5m

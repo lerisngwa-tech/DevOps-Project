@@ -1,0 +1,44 @@
+name: App CI
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/app-ci.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests (if any are defined)
+        run: npm test --if-present
+
+      - name: Build Docker image (validation only, no push)
+        run: docker build -t task-tracker:ci-${{ github.sha }} .
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.15.3"
+
+      - name: Helm lint
+        working-directory: app/chart/task-tracker
+        run: |
+          helm lint . \
+            --set image.repository=placeholder \
+            --set image.tag=placeholder \
+            --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::000000000000:role/placeholder \
+            --set env.s3BucketName=placeholder \
+            --set env.dbSecretArn=arn:aws:secretsmanager:us-east-1:000000000000:secret:placeholder \
+            --set env.dbSecretRoleArn=arn:aws:iam::000000000000:role/placeholder

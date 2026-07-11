@@ -101,3 +101,46 @@ curl http://<alb-hostname>/healthz
 curl http://<alb-hostname>/readyz          # 200 confirms RDS connectivity end-to-end
 curl -X POST http://<alb-hostname>/api/projects -H 'content-type: application/json' -d '{"name":"Demo"}'
 ```
+
+## CI/CD (GitHub Actions)
+
+Two workflows automate the app build/deploy (Terraform stays a manual CLI workflow, unchanged):
+
+- **`.github/workflows/app-ci.yml`** — runs on every PR touching `app/**`: installs dependencies, builds the Docker image (validation only, not pushed), and `helm lint`s the chart.
+- **`.github/workflows/app-cd.yml`** — runs on every push to `main` touching `app/**` (deploys to `dev` automatically), and can be triggered manually from the Actions tab (`workflow_dispatch`) with an `environment` input (`dev`/`stg`/`prod`) to promote a build to `stg` or `prod`. It builds the image, tags it with the commit SHA, pushes to ECR, and runs `helm upgrade --install` — the same shape as `app/Makefile`'s `deploy` target, but reading pre-populated GitHub Environment variables instead of live `terraform output` calls.
+
+### One-time setup (required before the CD workflow will work)
+
+1. **Create three GitHub Environments** (repo Settings → Environments): `dev`, `stg`, `prod`. Optionally add required reviewers on `stg`/`prod` for a manual approval gate.
+
+2. **Add these Variables to each Environment**, using that environment's `terraform output` (from `envs/<env>/`):
+
+   | Variable | Source |
+   |---|---|
+   | `AWS_REGION` | `us-east-1` |
+   | `EKS_CLUSTER_NAME` | `terraform output -raw cluster_name` |
+   | `ECR_REPOSITORY_URL` | `terraform output -raw ecr_repository_url` |
+   | `S3_BUCKET_NAME` | `terraform output -raw app_bucket_name` |
+   | `APP_BUCKET_IRSA_ROLE_ARN` | `terraform output -raw app_bucket_irsa_role_arn` |
+   | `DB_SECRET_ARN` | `terraform output -raw db_secret_arn` |
+   | `DB_SECRET_IRSA_ROLE_ARN` | `terraform output -raw db_secret_irsa_role_arn` |
+
+3. **Create a CI IAM user** (or reuse one) and attach the least-privilege policy in [`.github/ci-iam-policy.json`](.github/ci-iam-policy.json) (ECR push on the `myapp-*-app` repos + `eks:DescribeCluster` on the `myapp-*` clusters). Add its access key as **repo-level secrets**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
+
+4. **Grant that CI user Kubernetes access on each cluster** (the clusters use `authentication_mode = API_AND_CONFIG_MAP`, so an IAM identity also needs an explicit access entry to get past Kubernetes RBAC), once per environment:
+
+   ```
+   aws eks create-access-entry \
+     --cluster-name <cluster_name> \
+     --principal-arn <ci-iam-user-arn> \
+     --region us-east-1
+
+   aws eks associate-access-policy \
+     --cluster-name <cluster_name> \
+     --principal-arn <ci-iam-user-arn> \
+     --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy \
+     --access-scope type=namespace,namespaces=default \
+     --region us-east-1
+   ```
+
+Once these are in place, merging to `main` auto-deploys to `dev`; use **Actions → App CD → Run workflow** and pick `stg` or `prod` to promote the same pipeline to those environments.
