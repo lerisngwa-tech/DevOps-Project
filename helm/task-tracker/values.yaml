@@ -38,3 +38,8 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+metrics:
+  # Requires the Prometheus Operator CRDs (installed by modules/monitoring's
+  # kube-prometheus-stack) to already exist in the cluster.
+  enabled: true

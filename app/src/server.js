@@ -12,6 +12,7 @@ import { tasksRouter } from "./routes/tasks.js";
 import { attachmentsRouter } from "./routes/attachments.js";
 import { uiRouter } from "./routes/ui.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
+import { register, metricsMiddleware } from "./metrics.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +29,12 @@ async function main() {
 
   app.set("view engine", "ejs");
   app.set("views", path.join(__dirname, "views"));
+
+  app.use(metricsMiddleware);
+  app.get("/metrics", async (req, res) => {
+    res.set("Content-Type", register.contentType);
+    res.send(await register.metrics());
+  });
 
   app.use(healthRouter);
   app.use("/api/projects", projectsRouter);
