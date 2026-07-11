@@ -110,6 +110,14 @@ module "alb_controller" {
   tags = local.common_tags
 }
 
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  # Needs the AWS Load Balancer Controller already running to provision the
+  # NLB behind Grafana's Service annotations.
+  depends_on = [module.alb_controller]
+}
+
 module "rds" {
   source = "../../modules/rds"
 

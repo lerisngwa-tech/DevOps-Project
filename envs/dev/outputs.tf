@@ -68,6 +68,12 @@ output "k8s_namespace" {
   value       = var.app_k8s_namespace
 }
 
+output "grafana_admin_password" {
+  description = "Grafana admin password (user: admin)"
+  value       = module.monitoring.grafana_admin_password
+  sensitive   = true
+}
+
 output "configure_kubectl" {
   description = "Command to update local kubeconfig for this cluster"
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.aws_region}"
