@@ -22,8 +22,8 @@ deploy: push
 	$(eval S3_ROLE := $(call tf-output,app_bucket_irsa_role_arn))
 	$(eval DB_SECRET_ARN := $(call tf-output,db_secret_arn))
 	$(eval DB_ROLE := $(call tf-output,db_secret_irsa_role_arn))
-	helm upgrade --install task-tracker ./chart/task-tracker \
-	  -f chart/task-tracker/values-$(ENV).yaml \
+	helm upgrade --install task-tracker ../helm/task-tracker \
+	  -f ../helm/task-tracker/values-$(ENV).yaml \
 	  --set image.repository=$(REPO) \
 	  --set image.tag=$(TAG) \
 	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$(S3_ROLE) \

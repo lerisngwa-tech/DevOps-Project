@@ -102,7 +102,7 @@ jobs:
         run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME }}" --region "${{ vars.AWS_REGION }}"
 
       - name: Install/Upgrade Helm release
-        working-directory: app/chart/task-tracker
+        working-directory: helm/task-tracker
         run: |
           helm upgrade --install task-tracker . \
             -f "values-${{ inputs.environment || 'dev' }}.yaml" \

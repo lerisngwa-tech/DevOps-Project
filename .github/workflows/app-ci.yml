@@ -33,7 +33,7 @@ jobs:
           version: "v3.15.3"
 
       - name: Helm lint
-        working-directory: app/chart/task-tracker
+        working-directory: helm/task-tracker
         run: |
           helm lint . \
             --set image.repository=placeholder \
