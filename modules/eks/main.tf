@@ -39,6 +39,10 @@ module "eks" {
     metrics-server = {
       most_recent = true
     }
+    amazon-cloudwatch-observability = {
+      most_recent              = true
+      service_account_role_arn = module.cloudwatch_observability_irsa.iam_role_arn
+    }
   }
 
   eks_managed_node_group_defaults = {
@@ -78,6 +82,26 @@ module "ebs_csi_irsa" {
     main = {
       provider_arn               = module.eks.oidc_provider_arn
       namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
+    }
+  }
+
+  tags = var.tags
+}
+
+module "cloudwatch_observability_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.48"
+
+  role_name                              = "${var.cluster_name}-cloudwatch-observability-irsa"
+  attach_cloudwatch_observability_policy = true
+
+  oidc_providers = {
+    main = {
+      provider_arn = module.eks.oidc_provider_arn
+      namespace_service_accounts = [
+        "amazon-cloudwatch:cloudwatch-agent",
+        "amazon-cloudwatch:fluent-bit",
+      ]
     }
   }
 
