@@ -1,7 +1,9 @@
 replicaCount: 2
 
 ingress:
-  host: task-tracker-stg.example.com
+  # Empty = catch-all rule, matches any Host header (including the raw ALB DNS
+  # name). Set a real domain here once you own one and point it at the ALB.
+  host: ""
 
 resources:
   requests:
